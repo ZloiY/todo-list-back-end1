@@ -4,7 +4,7 @@ const log4js = require('log4js');
 const app = express();
 const port = 9000;
 const mysql = require('mysql');
-const connection = mysql.createConnection('mysql://user:user@localhost/tasks_schem');
+let connection;
 
 log4js.loadAppender('file');
 log4js.addAppender(log4js.appenders.file('logs/server.log'), 'server');
@@ -19,21 +19,12 @@ app.use(function (req, res, next) {
 });
 app.use(bodyParser.json());
 
-connection.connect((err) => {
-  if (err) {
-    logger.error('error connecting: ' + err.stack);
-    return;
-  }
-  logger.info('connect as id: ' + connection.threadId);
-});
-
 app.get('/tasks', (req, res, next) => {
   logger.info('GET request from client');
   connection.query('select * from tasks', (err, result, fields) => {
     if (err) {
       res.sendStatus(500);
       logger.error(err);
-      throw err;
     }
     logger.info(result);
     res.status(200).send(result);
@@ -45,12 +36,35 @@ app.get('/tasks/task/:taskId', (req, res, next) => {
   connection.query('select * from tasks where id=' + req.params.taskId, (err, result, fields) => {
     if (err) {
       res.sendStatus(500);
-      logger.error(err);
-      throw err;
     }
     logger.info(result);
     res.status(200).send(result);
   });
+});
+
+app.post('/registration', (req, res, next) => {
+  logger.info('POST request for adding new user :' + req.body.login + ' ' + req.body.pass);
+  connection.query('create schema if not exists '+ req.body.login + '' + req.body.pass, (err, result, fields) => {
+    if (err) {
+      res.sendStatus(500);
+      logger.error(err);
+    }
+  });
+  connectToDB(req.body.login, req.body.pass);
+  res.sendStatus(200);
+  connection.query('create table if not exists tasks (id int not null auto_increment, task_name varchar(50) not null, task_check int(1), primary key (`id`))',
+    (err, result, fields) => {
+      if (err) {
+        res.sendStatus(500);
+        logger.error(err);
+      }
+  });
+});
+
+app.post('/authentication', (req, res, next) => {
+  logger.info('POST request for authentication :' + req.body.login + ' ' + req.body.pass);
+  connectToDB(req.body.login, req.body.pass);
+  res.sendStatus(200);
 });
 
 app.post('/tasks/task', (req, res, next) => {
@@ -60,7 +74,6 @@ app.post('/tasks/task', (req, res, next) => {
     if (err) {
       res.sendStatus(500);
       logger.error(err);
-      throw err;
     }
     logger.info(task);
     res.status(200).send(task);
@@ -73,7 +86,6 @@ app.delete('/tasks/task/:taskId', (req, res, next) => {
     if (err) {
       res.sendStatus(500);
       logger.error(err);
-      throw err;
     }
     logger.info('Deleting task by id: ' + req.params.taskId);
     res.status(200).send(req.params.taskId);
@@ -84,11 +96,10 @@ app.put('/tasks/task/:taskId', (req, res, next) => {
   const task = req.body;
   logger.info('PUT request from client: ');
   logger.info(task);
-  connection.query('update tasks set task_check=? where id=?',[task.task_check,req.params.taskId], (err, result, fields) => {
+  connection.query('update tasks set task_check=? where id=?', [task.task_check,req.params.taskId], (err, result, fields) => {
     if (err) {
       res.sendStatus(500);
       logger.error(err);
-      throw err;
     }
     logger.info('Updating task:' + req.params.taskId);
     res.status(200).send(task);
@@ -104,4 +115,29 @@ process.on('SIGINT', () => {
 
 app.listen(port, () => {
   logger.info('server is up on localhost:' + port);
+  waitingForLogging();
 });
+
+function connectToDB(userName, userPass) {
+  logger.info('logging into account');
+  connection.end();
+  connection= mysql.createConnection('mysql://user:user@localhost/'+userName+''+userPass);
+  connection.connect((err) => {
+    if (err) {
+      logger.error('error connecting: ' + err.stack);
+      return;
+    }
+    logger.info('connect as id: ' + connection.threadId);
+  });
+}
+
+function waitingForLogging() {
+  connection= mysql.createConnection('mysql://user:user@localhost/');
+  connection.connect((err) => {
+    if (err) {
+      logger.error('error connecting: ' + err.stack);
+      return;
+    }
+    logger.info('connect as id: ' + connection.threadId);
+  });
+}
