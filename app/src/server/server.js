@@ -64,8 +64,8 @@ app.post('/authentication', (req, res, next) => {
 
 app.post('/tasks/task', (req, res, next) => {
   const task = req.body;
-  logger.info('POST request from client:');
-  db.addTask(task.name, task.check, (err) => {
+  logger.info('POST request from client: ' + task);
+  db.addTask(task.name, task.complete, (err) => {
     if (err) {
       res.sendStatus(500);
       return;
@@ -75,13 +75,13 @@ app.post('/tasks/task', (req, res, next) => {
 });
 
 app.delete('/tasks/task/:taskId', (req, res, next) => {
-  logger.info('DELETE request from client');
+  logger.info('DELETE request from client by id: '+ req.params.taskId);
   db.deleteTask(req.params.taskId, (err) => {
     if (err) {
       res.sendStatus(500);
       return;
     }
-    res.status(200);
+    res.sendStatus(200);
   });
 });
 
@@ -89,7 +89,7 @@ app.put('/tasks/task/:taskId', (req, res, next) => {
   const task = req.body;
   logger.info('PUT request from client: ');
   logger.info(task);
-  db.updateTask(task.check, task.id, (err) => {
+  db.updateTask(task.complete, task.id, (err) => {
     if (err) {
       res.sendStatus(500);
       return;

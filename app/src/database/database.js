@@ -6,12 +6,13 @@ log4js.addAppender(log4js.appenders.file('logs/server.log'), 'server');
 const logger = log4js.getLogger('server');
 let connection;
 
-exports.addTask = function (taskName, taskCheck) {
-  connection.query('insert into tasks(name, check) values(?,?)', [taskName, taskCheck], (err, result, fields) => {
+exports.addTask = function (taskName, taskCheck, callback) {
+  connection.query('insert into tasks (name, complete) values (?, ?)', [taskName, taskCheck], (err, result, fields) => {
     if (err) {
       logger.error(err);
-      return err;
+      callback(err);
     }
+    callback();
   });
 };
 
@@ -43,15 +44,17 @@ exports.deleteTask = function (taskId, callback) {
       logger.error(err);
       callback(err);
     }
+    callback(null);
   });
 };
 
 exports.updateTask = function (taskState, taskId, callback) {
-  connection.query('update tasks set check=? where id=?', [taskState,taskId], (err) => {
+  connection.query('update tasks set complete=? where id=?', [taskState,taskId], (err) => {
     if (err) {
       logger.error(err);
       callback(err);
     }
+    callback(null);
   });
 };
 
@@ -62,14 +65,19 @@ exports.createUser = function (userName, userPass, callback) {
       callback(err);
     }
   });
-  this.connectToDB(userName, userPass);
-  connection.query('create table if not exists tasks (id int not null auto_increment, name varchar(50) not null, check int(1), primary key (`id`))',
-    (err, result, fields) => {
-      if (err) {
-        logger.error(err);
-        callback(err);
-      }
+  this.connectToDB(userName, userPass, (err) => {
+    if (err) {
+      logger.error(err);
+    }
+    connection.query('create table if not exists tasks (`id` int not null auto_increment, `name` varchar(50) not null, `complete` int(1) not null,PRIMARY KEY ( `id` ))',
+      (err, result, fields) => {
+        if (err) {
+          logger.error(err);
+          callback(err);
+        }
+      });
   });
+  callback(null)
 };
 
 exports.connectToDB = function (userName, userPass, callback) {
@@ -82,15 +90,16 @@ exports.connectToDB = function (userName, userPass, callback) {
       callback(err);
     }
     logger.info('connect as id: ' + connection.threadId);
+    callback(null);
   });
 };
 
-exports.waitingForLoggingIn = function (callback) {
-  connection= mysql.createConnection('mysql://user:user@localhost/tasks_schem');
+exports.waitingForLoggingIn = function () {
+  connection= mysql.createConnection('mysql://user:user@localhost/');
   connection.connect((err) => {
     if (err) {
       logger.error('error connecting: ' + err.stack);
-      callback(err);
+      throw err;
     }
     logger.info('connect as id: ' + connection.threadId);
   });
