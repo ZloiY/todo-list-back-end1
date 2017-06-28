@@ -7,7 +7,7 @@ const logger = log4js.getLogger('server');
 let connection;
 
 exports.addTask = function (taskName, taskCheck, callback) {
-  connection.query('insert into tasks (name, complete) values (?, ?)', [taskName, taskCheck], (err, result, fields) => callbackHandler(callback, err));
+  connection.query('insert into tasks (login, complete) values (?, ?)', [taskName, taskCheck], (err, result, fields) => callbackHandler(callback, err));
 };
 
 exports.getTasks = function (callback) {
@@ -27,18 +27,18 @@ exports.updateTask = function (taskState, taskId, callback) {
 };
 
 exports.createUser = function (config, database, callback) {
-  connection.query('create schema if not exists '+ userName + '' + userPass, (err) => {
+  connection.query('create schema if not exists `'+ database + '`', (err) => {
     if (err) {
       logger.error(err);
       callback(err);
     }
-  });
-  this.connectToDB(config, database, (err) => {
-    if (err) {
-      logger.error(err);
-    }
-    connection.query('create table if not exists tasks (`id` int not null auto_increment, `name` varchar(50) not null, `complete` int(1) not null,PRIMARY KEY ( `id` ))',
-      (err, result, fields) => callbackHandler(callback, err));
+    this.connectToDB(config, database, (err) => {
+      if (err) {
+        logger.error(err);
+      }
+      connection.query('create table if not exists tasks (`id` int not null auto_increment, `login` varchar(50) not null, `complete` int(1) not null,PRIMARY KEY ( `id` ))',
+        (err, result, fields) => callbackHandler(callback, err));
+    });
   });
 };
 

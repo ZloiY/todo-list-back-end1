@@ -8,6 +8,10 @@ const port = 9000;
 log4js.loadAppender('file');
 log4js.addAppender(log4js.appenders.file('../../logs/server.log'), 'server');
 const logger = log4js.getLogger('server');
+const user = {
+  login: '',
+  pass: '',
+};
 let configuration;
 
 app.use(function (req, res, next) {
@@ -30,28 +34,41 @@ app.get('/tasks/task/:taskId', (req, res, next) => {
   db.getTask(req.params.taskId, (err, task) => errorHandler(err, res, task));
 });
 
+app.get('/user', (req, res, next) => {
+  logger.info('GET request from client, getting current user');
+  if (user.login.length !== 0) {
+    res.status(200).send(user);
+  } else {
+    res.sendStatus(500);
+  }
+});
+
 app.post('/user', (req, res, next) => {
   const database = req.body.login + '' + req.body.pass;
+  user.login = req.body.login;
   logger.info('POST request for adding new user :' + database);
   db.createUser(configuration, database, (err) => errorHandler(err, res));
 });
 
 app.post('/user/login', (req, res, next) => {
   const database = req.body.login + '' + req.body.pass;
+  user.login = req.body.login;
   logger.info('POST request for authentication :' + database);
   db.connectToDB(configuration, database, (err) => errorHandler(err, res));
 });
 
 app.post('/user/logout', (req, res, next) => {
-  logger.info('POST request for logout user: ' + req.body.name);
+  logger.info('POST request for logout user: ' + req.body.login);
   db.closeConnection();
+  db.waitingForLoggingIn(configuration);
+  res.sendStatus(200);
 });
 
 app.post('/tasks/task', (req, res, next) => {
   const task = req.body;
   logger.info('POST request from client: ');
   logger.info(task);
-  db.addTask(task.name, task.complete, (err) => errorHandler(err, res, task));
+  db.addTask(task.login, task.complete, (err) => errorHandler(err, res, task));
 });
 
 app.delete('/tasks/task/:taskId', (req, res, next) => {
