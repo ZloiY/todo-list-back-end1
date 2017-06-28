@@ -16,86 +16,45 @@ app.use(function (req, res, next) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   next();
 });
+
 app.use(bodyParser.json());
 
 app.get('/tasks', (req, res, next) => {
   logger.info('GET request from client');
-  db.getTasks((err, tasks) => {
-    if (err) {
-      res.sendStatus(500);
-      return;
-    }
-    res.status(200).send(tasks);
-  });
+  db.getTasks((err, tasks) => errorHandler(err, res, tasks));
 });
 
 app.get('/tasks/task/:taskId', (req, res, next) => {
   logger.info('GET request from client by id: ' + req.params.taskId);
-  db.getTask(req.params.taskId, (err, task) => {
-    if (err) {
-      res.sendStatus(500);
-      return;
-    }
-    res.status(200).send(task);
-  });
+  db.getTask(req.params.taskId, (err, task) => errorHandler(err, res, task));
 });
 
 app.post('/registration', (req, res, next) => {
   logger.info('POST request for adding new user :' + req.body.login + ' ' + req.body.pass);
-  db.createUser(req.body.login, req.body.pass, (err) => {
-    if (err) {
-      res.sendStatus(500);
-      return;
-    }
-    res.sendStatus(200);
-  });
+  db.createUser(req.body.login, req.body.pass, (err) => errorHandler(err, res));
 });
 
 app.post('/authentication', (req, res, next) => {
   logger.info('POST request for authentication :' + req.body.login + ' ' + req.body.pass);
-  db.connectToDB(req.body.login, req.body.pass, (err) => {
-    if (err) {
-      res.sendStatus(500);
-      return;
-    }
-    res.sendStatus(200);
-  });
+  db.connectToDB(req.body.login, req.body.pass, (err) => errorHandler(err, res));
 });
 
 app.post('/tasks/task', (req, res, next) => {
   const task = req.body;
   logger.info('POST request from client: ' + task);
-  db.addTask(task.name, task.complete, (err) => {
-    if (err) {
-      res.sendStatus(500);
-      return;
-    }
-    res.status(200).send(task);
-  });
+  db.addTask(task.name, task.complete, (err) => errorHandler(err, res, task));
 });
 
 app.delete('/tasks/task/:taskId', (req, res, next) => {
   logger.info('DELETE request from client by id: '+ req.params.taskId);
-  db.deleteTask(req.params.taskId, (err) => {
-    if (err) {
-      res.sendStatus(500);
-      return;
-    }
-    res.sendStatus(200);
-  });
+  db.deleteTask(req.params.taskId, (err) => errorHandler(err, res));
 });
 
 app.put('/tasks/task/:taskId', (req, res, next) => {
   const task = req.body;
   logger.info('PUT request from client: ');
   logger.info(task);
-  db.updateTask(task.complete, task.id, (err) => {
-    if (err) {
-      res.sendStatus(500);
-      return;
-    }
-    res.status(200).send(task);
-  });
+  db.updateTask(task.complete, task.id, (err) => errorHandler(err, res, task));
 });
 
 exports.start = function () {
@@ -108,4 +67,12 @@ exports.start = function () {
 exports.close = function () {
   logger.info('shutting down...');
   db.closeConnection();
+};
+
+const errorHandler = function(err, response, result = {}) {
+  if (err) {
+    response.sendStatus(500);
+    return;
+  }
+  response.status(200).send(result);
 };
