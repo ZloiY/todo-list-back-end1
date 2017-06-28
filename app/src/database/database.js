@@ -64,6 +64,8 @@ exports.closeConnection = function () {
   connection.end((err) => {
     if (err) {
       logger.error(err.stack);
+    } else {
+      connection.release();
     }
   });
   connection.destroy();

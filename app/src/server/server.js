@@ -30,16 +30,21 @@ app.get('/tasks/task/:taskId', (req, res, next) => {
   db.getTask(req.params.taskId, (err, task) => errorHandler(err, res, task));
 });
 
-app.post('/registration', (req, res, next) => {
+app.post('/user', (req, res, next) => {
   const database = req.body.login + '' + req.body.pass;
   logger.info('POST request for adding new user :' + database);
   db.createUser(configuration, database, (err) => errorHandler(err, res));
 });
 
-app.post('/authentication', (req, res, next) => {
+app.post('/user/login', (req, res, next) => {
   const database = req.body.login + '' + req.body.pass;
   logger.info('POST request for authentication :' + database);
   db.connectToDB(configuration, database, (err) => errorHandler(err, res));
+});
+
+app.post('/user/logout', (req, res, next) => {
+  logger.info('POST request for logout user: ' + req.body.name);
+  db.closeConnection();
 });
 
 app.post('/tasks/task', (req, res, next) => {
