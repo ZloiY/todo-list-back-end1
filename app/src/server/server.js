@@ -74,10 +74,10 @@ exports.close = function () {
   db.closeConnection();
 };
 
-const errorHandler = function(err, response, result = {}) {
+const errorHandler = function (err, response, result = {}) {
   if (err) {
     response.sendStatus(500);
-    return;
+  } else {
+    response.status(200).send(result);
   }
-  response.status(200).send(result);
 };

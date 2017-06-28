@@ -44,14 +44,12 @@ exports.createUser = function (config, database, callback) {
 
 exports.connectToDB = function (config, database, callback) {
   logger.info('logging into account');
-  connection.end();
+  this.closeConnection();
   connection = createDBConnection(config, database);
   connection.connect((err) => callbackHandler(callback, err));
-  logger.info('connection id:' + connection.threadId);
 };
 
 exports.waitingForLoggingIn = function (config) {
-
   connection = createDBConnection(config);
   connection.connect((err) => {
     if (err) {
@@ -75,9 +73,10 @@ const callbackHandler = function (callback, err, result={}) {
   if (err) {
     logger.error(err.stack);
     callback(err, null);
+  } else {
+    logger.info(result);
+    callback(null, result);
   }
-  logger.info(result);
-  callback(null, result);
 };
 
 const createDBConnection = function (config, dbname='') {
