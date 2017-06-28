@@ -26,14 +26,14 @@ exports.updateTask = function (taskState, taskId, callback) {
   connection.query('update tasks set complete=? where id=?', [taskState,taskId], (err) => callbackHandler(callback, err));
 };
 
-exports.createUser = function (userName, userPass, callback) {
+exports.createUser = function (config, database, callback) {
   connection.query('create schema if not exists '+ userName + '' + userPass, (err) => {
     if (err) {
       logger.error(err);
       callback(err);
     }
   });
-  this.connectToDB(userName, userPass, (err) => {
+  this.connectToDB(config, database, (err) => {
     if (err) {
       logger.error(err);
     }
@@ -42,16 +42,17 @@ exports.createUser = function (userName, userPass, callback) {
   });
 };
 
-exports.connectToDB = function (userName, userPass, callback) {
+exports.connectToDB = function (config, database, callback) {
   logger.info('logging into account');
   connection.end();
-  connection = mysql.createConnection('mysql://user:user@localhost/' + userName + '' + userPass);
+  connection = createDBConnection(config, database);
   connection.connect((err) => callbackHandler(callback, err));
   logger.info('connection id:' + connection.threadId);
 };
 
-exports.waitingForLoggingIn = function () {
-  connection= mysql.createConnection('mysql://user:user@localhost/');
+exports.waitingForLoggingIn = function (config) {
+
+  connection = createDBConnection(config);
   connection.connect((err) => {
     if (err) {
       logger.error('error connecting: ' + err.stack);
@@ -62,6 +63,11 @@ exports.waitingForLoggingIn = function () {
 };
 
 exports.closeConnection = function () {
+  connection.end((err) => {
+    if (err) {
+      logger.error(err.stack);
+    }
+  });
   connection.destroy();
 };
 
@@ -72,4 +78,14 @@ const callbackHandler = function (callback, err, result={}) {
   }
   logger.info(result);
   callback(null, result);
+};
+
+const createDBConnection = function (config, dbname='') {
+  return mysql.createConnection({
+    host: config.database.host,
+    port: config.database.port,
+    user: config.database.userName,
+    password: config.database.userPass,
+    database: dbname,
+  });
 };

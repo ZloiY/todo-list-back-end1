@@ -8,6 +8,7 @@ const port = 9000;
 log4js.loadAppender('file');
 log4js.addAppender(log4js.appenders.file('../../logs/server.log'), 'server');
 const logger = log4js.getLogger('server');
+let configuration;
 
 app.use(function (req, res, next) {
   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:4200');
@@ -30,18 +31,21 @@ app.get('/tasks/task/:taskId', (req, res, next) => {
 });
 
 app.post('/registration', (req, res, next) => {
-  logger.info('POST request for adding new user :' + req.body.login + ' ' + req.body.pass);
-  db.createUser(req.body.login, req.body.pass, (err) => errorHandler(err, res));
+  const database = req.body.login + '' + req.body.pass;
+  logger.info('POST request for adding new user :' + database);
+  db.createUser(configuration, database, (err) => errorHandler(err, res));
 });
 
 app.post('/authentication', (req, res, next) => {
-  logger.info('POST request for authentication :' + req.body.login + ' ' + req.body.pass);
-  db.connectToDB(req.body.login, req.body.pass, (err) => errorHandler(err, res));
+  const database = req.body.login + '' + req.body.pass;
+  logger.info('POST request for authentication :' + database);
+  db.connectToDB(configuration, database, (err) => errorHandler(err, res));
 });
 
 app.post('/tasks/task', (req, res, next) => {
   const task = req.body;
-  logger.info('POST request from client: ' + task);
+  logger.info('POST request from client: ');
+  logger.info(task);
   db.addTask(task.name, task.complete, (err) => errorHandler(err, res, task));
 });
 
@@ -57,10 +61,11 @@ app.put('/tasks/task/:taskId', (req, res, next) => {
   db.updateTask(task.complete, task.id, (err) => errorHandler(err, res, task));
 });
 
-exports.start = function () {
+exports.start = function (config) {
+  configuration = config;
   app.listen(port, () => {
     logger.info('server is up on localhost:' + port);
-    db.waitingForLoggingIn();
+    db.waitingForLoggingIn(config);
   });
 };
 
