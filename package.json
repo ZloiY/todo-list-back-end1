@@ -11,7 +11,9 @@
   "dependencies": {
     "body-parser": "^1.17.2",
     "express": "^4.15.3",
+    "fs": "0.0.1-security",
     "log4js": "^1.1.1",
-    "mysql": "^2.13.0"
+    "mysql": "^2.13.0",
+    "path": "^0.12.7"
   }
 }
