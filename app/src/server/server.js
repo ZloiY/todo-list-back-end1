@@ -67,8 +67,16 @@ app.post('/user/logout', (req, res, next) => {
 app.post('/tasks/task', (req, res, next) => {
   const task = req.body;
   logger.info('POST request from client: ');
-  logger.info(task);
-  db.addTask(task.name, task.complete, (err) => errorHandler(err, res, task));
+  db.addTask(task.name, task.complete, (err, result) => {
+    if (err) {
+      logger.error(err);
+      res.sendStatus(500);
+    } else {
+      task.id = result;
+      logger.info(task);
+      res.status(200).send(task);
+    }
+  });
 });
 
 app.delete('/tasks/task/:taskId', (req, res, next) => {
