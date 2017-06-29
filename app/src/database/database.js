@@ -36,7 +36,7 @@ exports.createUser = function (config, database, callback) {
       if (err) {
         logger.error(err);
       }
-      connection.query('create table if not exists tasks (`id` int not null auto_increment, `login` varchar(50) not null, `complete` int(1) not null,PRIMARY KEY ( `id` ))',
+      connection.query('create table if not exists tasks (`id` int not null auto_increment, `name` varchar(50) not null, `complete` int(1) not null,PRIMARY KEY ( `id` ))',
         (err, result, fields) => callbackHandler(callback, err));
     });
   });
