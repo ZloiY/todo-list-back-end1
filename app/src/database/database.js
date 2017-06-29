@@ -7,7 +7,7 @@ const logger = log4js.getLogger('server');
 let connection;
 
 exports.addTask = function (taskName, taskCheck, callback) {
-  connection.query('insert into tasks (login, complete) values (?, ?)', [taskName, taskCheck], (err, result, fields) => callbackHandler(callback, err));
+  connection.query('insert into tasks (name, complete) values (?, ?)', [taskName, taskCheck], (err, result, fields) => callbackHandler(callback, err));
 };
 
 exports.getTasks = function (callback) {
