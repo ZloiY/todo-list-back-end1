@@ -26,12 +26,24 @@ app.use(bodyParser.json());
 
 app.get('/tasks', (req, res, next) => {
   logger.info('GET request from client');
-  db.getTasks((err, tasks) => errorHandler(err, res, tasks));
+  db.getTasks((err, tasks) => {
+    if (err) {
+      res.sendStatus(500);
+    } else {
+      tasks.length ? res.status(200).send(tasks) : res.sendStatus(205)
+    }
+  });
 });
 
 app.get('/tasks/task/:taskId', (req, res, next) => {
   logger.info('GET request from client by id: ' + req.params.taskId);
-  db.getTask(req.params.taskId, (err, task) => errorHandler(err, res, task));
+  db.getTask(req.params.taskId, (err, task) => {
+    if (err) {
+      res.sendStatus(500)
+    } else {
+      task ? res.status(200).send(task) : res.status(205);
+    }
+  });
 });
 
 app.get('/user', (req, res, next) => {
@@ -47,7 +59,13 @@ app.post('/user', (req, res, next) => {
   const database = req.body.login + '' + req.body.pass;
   user.login = req.body.login;
   logger.info('POST request for adding new user :' + database);
-  db.createUser(configuration, database, (err) => errorHandler(err, res));
+  db.createUser(configuration, database, (err) => {
+    if (err) {
+      res.status(500);
+    } else {
+      res.sendStatus(201);
+    }
+  });
 });
 
 app.post('/user/login', (req, res, next) => {
@@ -74,7 +92,7 @@ app.post('/tasks/task', (req, res, next) => {
     } else {
       task.id = result;
       logger.info(task);
-      res.status(200).send(task);
+      res.status(201).send(task);
     }
   });
 });

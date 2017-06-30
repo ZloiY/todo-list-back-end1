@@ -72,13 +72,17 @@ exports.closeConnection = function () {
 };
 
 const callbackHandler = function (callback, err, result={}) {
-  if (err) {
-    logger.error(err.stack);
-    callback(err, null);
-  } else {
-    logger.info(result);
-    callback(null, result);
+  if (err && err.code === 'PROTOCOL_SEQUENCE_TIMEOUT') {
+    logger.info('Reach timeout, query will be destroy');
+    return;
   }
+  if (err) {
+    logger.error(err);
+    callback(err, null);
+    return;
+  }
+  logger.info(result);
+  callback(null, result);
 };
 
 const createDBConnection = function (config, dbname='') {
