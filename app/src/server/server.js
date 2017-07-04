@@ -1,6 +1,9 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const log4js = require('log4js');
+const saltGen = require('../generators/salt-gen');
+const token = require('../jwt/jwt-creating');
+const hasha = require('hasha');
 const db = require('../database/database');
 const app = express();
 const port = 9000;
@@ -11,6 +14,8 @@ const logger = log4js.getLogger('server');
 const user = {
   login: '',
   pass: '',
+  database: '',
+  token: '',
 };
 let configuration;
 
@@ -25,88 +30,129 @@ app.use(function (req, res, next) {
 app.use(bodyParser.json());
 
 app.get('/tasks', (req, res, next) => {
-  logger.info('GET request from client');
-  db.getTasks((err, tasks) => {
-    if (err) {
-      res.sendStatus(500);
-    } else {
-      tasks.length ? res.status(200).send(tasks) : res.sendStatus(205)
-    }
-  });
-});
-
-app.get('/tasks/task/:taskId', (req, res, next) => {
-  logger.info('GET request from client by id: ' + req.params.taskId);
-  db.getTask(req.params.taskId, (err, task) => {
-    if (err) {
-      res.sendStatus(500)
-    } else {
-      task ? res.status(200).send(task) : res.status(205);
-    }
-  });
+  if (req.query.token === user.token) {
+    logger.info('GET request from client, getting tasks');
+    db.getTasks((err, tasks) => {
+      if (err) {
+        res.sendStatus(500);
+      } else {
+        tasks.length ? res.status(200).json(tasks) : res.status(205).json();
+      }
+    });
+  } else {
+    res.sendStatus(401);
+  }
 });
 
 app.get('/user', (req, res, next) => {
   logger.info('GET request from client, getting current user');
-  if (user.login.length !== 0) {
-    res.status(200).send(user);
+  if (req.query.token === user.token) {
+    if (user.login.length !== 0) {
+      res.status(200).send(user);
+    } else {
+      res.sendStatus(500);
+    }
   } else {
-    res.sendStatus(500);
+    res.sendStatus(401);
   }
 });
 
 app.post('/user', (req, res, next) => {
-  const database = req.body.login + '' + req.body.pass;
-  user.login = req.body.login;
-  logger.info('POST request for adding new user :' + database);
-  db.createUser(configuration, database, (err) => {
-    if (err) {
-      res.status(500);
-    } else {
-      res.sendStatus(201);
-    }
+  let database = req.body.login + '' + req.body.pass;
+  const userSalt = {
+   user: req.body.login,
+   salt: saltGen.saltGen(),
+  };
+  logger.info('POST request for user registration: ');
+  logger.info(database);
+  db.setUserSalt(userSalt, configuration, () => {
+    db.waitingForLoggingIn(configuration);
+    database += userSalt.salt;
+    database = hasha(database, {options: 'sha256'});
+    database = database.slice(0,62);
+    db.createUser(configuration, database, (err) => {
+      if (err) {
+        logger.error(err);
+        res.sendStatus(500);
+      } else {
+        res.sendStatus(201);
+      }
+    });
   });
 });
 
 app.post('/user/login', (req, res, next) => {
-  const database = req.body.login + '' + req.body.pass;
+  let database = req.body.login + '' + req.body.pass;
   user.login = req.body.login;
-  logger.info('POST request for authentication :' + database);
-  db.connectToDB(configuration, database, (err) => errorHandler(err, res));
+  logger.info('POST request for authentication :');
+  db.getUserSalt(user.login, configuration, (err, result) => {
+    const salt = JSON.stringify(result);
+    database += salt.slice(10, 20);
+    database = hasha(database, {options: 'sha256'});
+    user.database = database.slice(0,62);
+    logger.info(user.database);
+    db.connectToDB(configuration, user.database, (err) => {
+      if (err) {
+        res.sendStatus(500);
+      } else {
+        user.token = token.getToken();
+        logger.info(user.token);
+        res.status(200).json(user.token);
+      }
+    });
+  });
 });
 
-app.post('/user/logout', (req, res, next) => {
-  logger.info('POST request for logout user: ' + req.body.login);
-  db.closeConnection();
-  db.waitingForLoggingIn(configuration);
-  res.sendStatus(200);
+app.post('/user/logout/:token', (req, res, next) => {
+  const token = req.params.token;
+  if (token === user.token) {
+    logger.info('POST request for logout user: ' + user.database);
+    db.closeConnection();
+    user.token = '';
+    db.waitingForLoggingIn(configuration);
+    res.sendStatus(200);
+  } else {
+    res.sendStatus(401);
+  }
 });
 
 app.post('/tasks/task', (req, res, next) => {
   const task = req.body;
-  logger.info('POST request from client: ');
-  db.addTask(task.name, task.complete, (err, result) => {
-    if (err) {
-      logger.error(err);
-      res.sendStatus(500);
-    } else {
-      task.id = result;
-      logger.info(task);
-      res.status(201).send(task);
-    }
-  });
+  if (user.token === req.query.token) {
+    logger.info('POST request from client: ');
+    db.addTask(task.name, task.complete, (err, result) => {
+      if (err) {
+        logger.error(err);
+        res.sendStatus(500);
+      } else {
+        task.id = result;
+        logger.info(task);
+        res.status(201).send(task);
+      }
+    });
+  } else {
+    res.sendStatus(401);
+  }
 });
 
 app.delete('/tasks/task/:taskId', (req, res, next) => {
-  logger.info('DELETE request from client by id: '+ req.params.taskId);
-  db.deleteTask(req.params.taskId, (err) => errorHandler(err, res));
+  if (req.query.token === user.token) {
+    logger.info('DELETE request from client by id: ' + req.params.taskId);
+    db.deleteTask(req.params.taskId, (err) => errorHandler(err, res));
+  } else {
+    res.sendStatus(401);
+  }
 });
 
 app.put('/tasks/task/:taskId', (req, res, next) => {
-  const task = req.body;
-  logger.info('PUT request from client: ');
-  logger.info(task);
-  db.updateTask(task.complete, task.id, (err) => errorHandler(err, res, task));
+  if (req.query.token === user.token) {
+    const task = req.body;
+    logger.info('PUT request from client: ');
+    logger.info(task);
+    db.updateTask(task.complete, task.id, (err) => errorHandler(err, res, task));
+  } else {
+    res.sendStatus(401);
+  }
 });
 
 exports.start = function (config) {
