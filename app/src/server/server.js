@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const log4js = require('log4js');
 const saltGen = require('../generators/salt-gen');
+const jwt = require('jsonwebtoken');
 const token = require('../jwt/jwt-creating');
 const hasha = require('hasha');
 const db = require('../database/database');
@@ -16,6 +17,8 @@ const user = {
   pass: '',
   database: '',
   token: '',
+  secret: '',
+  id:'',
 };
 let configuration;
 
@@ -30,7 +33,7 @@ app.use(function (req, res, next) {
 app.use(bodyParser.json());
 
 app.get('/tasks', (req, res, next) => {
-  if (req.query.token === user.token) {
+  if (jwt.verify(req.query.token, user.secret).id === user.id) {
     logger.info('GET request from client, getting tasks');
     db.getTasks((err, tasks) => {
       if (err) {
@@ -46,7 +49,7 @@ app.get('/tasks', (req, res, next) => {
 
 app.get('/user', (req, res, next) => {
   logger.info('GET request from client, getting current user');
-  if (req.query.token === user.token) {
+  if (jwt.verify(req.query.token, user.secret).id === user.id) {
     if (user.login.length !== 0) {
       res.status(200).send(user);
     } else {
@@ -66,7 +69,6 @@ app.post('/user', (req, res, next) => {
   logger.info('POST request for user registration: ');
   logger.info(database);
   db.setUserSalt(userSalt, configuration, () => {
-    db.waitingForLoggingIn(configuration);
     database += userSalt.salt;
     database = hasha(database, {options: 'sha256'});
     database = database.slice(0,62);
@@ -96,7 +98,8 @@ app.post('/user/login', (req, res, next) => {
         res.sendStatus(500);
       } else {
         user.token = token.getToken();
-        logger.info(user.token);
+        user.secret = token.getSecret();
+        user.id = token.getId();
         res.status(200).json(user.token);
       }
     });
@@ -105,7 +108,7 @@ app.post('/user/login', (req, res, next) => {
 
 app.post('/user/logout/:token', (req, res, next) => {
   const token = req.params.token;
-  if (token === user.token) {
+  if (jwt.verify(token, user.secret).id === user.id) {
     logger.info('POST request for logout user: ' + user.database);
     db.closeConnection();
     user.token = '';
@@ -118,7 +121,7 @@ app.post('/user/logout/:token', (req, res, next) => {
 
 app.post('/tasks/task', (req, res, next) => {
   const task = req.body;
-  if (user.token === req.query.token) {
+  if (user.id === jwt.verify(req.query.token, user.secret).id) {
     logger.info('POST request from client: ');
     db.addTask(task.name, task.complete, (err, result) => {
       if (err) {
@@ -136,7 +139,7 @@ app.post('/tasks/task', (req, res, next) => {
 });
 
 app.delete('/tasks/task/:taskId', (req, res, next) => {
-  if (req.query.token === user.token) {
+  if (jwt.verify(req.query.token, user.secret).id === user.id) {
     logger.info('DELETE request from client by id: ' + req.params.taskId);
     db.deleteTask(req.params.taskId, (err) => errorHandler(err, res));
   } else {
@@ -145,7 +148,7 @@ app.delete('/tasks/task/:taskId', (req, res, next) => {
 });
 
 app.put('/tasks/task/:taskId', (req, res, next) => {
-  if (req.query.token === user.token) {
+  if (jwt.verify(req.query.token, user.secret).id === user.id) {
     const task = req.body;
     logger.info('PUT request from client: ');
     logger.info(task);
