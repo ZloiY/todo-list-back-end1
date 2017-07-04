@@ -35,7 +35,7 @@ app.use(bodyParser.json());
 app.get('/tasks', (req, res, next) => {
   if (jwt.verify(req.query.token, user.secret).id === user.id) {
     logger.info('GET request from client, getting tasks');
-    db.getTasks((err, tasks) => {
+    db.getTasks(user.login, (err, tasks) => {
       if (err) {
         res.sendStatus(500);
       } else {
@@ -61,46 +61,44 @@ app.get('/user', (req, res, next) => {
 });
 
 app.post('/user', (req, res, next) => {
-  let database = req.body.login + '' + req.body.pass;
-  const userSalt = {
-   user: req.body.login,
-   salt: saltGen.saltGen(),
-  };
+  user.pass = req.body.pass;
+  user.login = req.body.login;
+  user.salt = saltGen.saltGen();
   logger.info('POST request for user registration: ');
-  logger.info(database);
-  db.setUserSalt(userSalt, configuration, () => {
-    database += userSalt.salt;
-    database = hasha(database, {options: 'sha256'});
-    database = database.slice(0,62);
-    db.createUser(configuration, database, (err) => {
-      if (err) {
-        logger.error(err);
-        res.sendStatus(500);
-      } else {
-        res.sendStatus(201);
-      }
-    });
+  logger.info(user.login);
+  user.pass += user.salt;
+  user.pass = hasha(user.pass, {options: 'sha256'});
+  db.createUser(configuration, user, (err) => {
+    if (err) {
+      logger.error(err);
+      res.sendStatus(500);
+    } else {
+      res.sendStatus(201);
+    }
   });
 });
 
 app.post('/user/login', (req, res, next) => {
-  let database = req.body.login + '' + req.body.pass;
+  user.pass = req.body.pass;
   user.login = req.body.login;
   logger.info('POST request for authentication :');
-  db.getUserSalt(user.login, configuration, (err, result) => {
+  db.getUserSalt(user.login, (err, result) => {
     const salt = JSON.stringify(result);
-    database += salt.slice(10, 20);
-    database = hasha(database, {options: 'sha256'});
-    user.database = database.slice(0,62);
-    logger.info(user.database);
-    db.connectToDB(configuration, user.database, (err) => {
+    user.pass += salt.slice(10, 20);
+    user.pass =  hasha(user.pass, {options: 'sha256'});
+    db.getUserPass(user.login, (err, result) => {
       if (err) {
         res.sendStatus(500);
-      } else {
+        return;
+      }
+      const passHash = JSON.stringify(result);
+      if (user.pass === passHash.slice(15, 143)) {
         user.token = token.getToken();
         user.secret = token.getSecret();
         user.id = token.getId();
         res.status(200).json(user.token);
+      } else {
+        res.sendStatus(401);
       }
     });
   });
@@ -110,9 +108,7 @@ app.post('/user/logout/:token', (req, res, next) => {
   const token = req.params.token;
   if (jwt.verify(token, user.secret).id === user.id) {
     logger.info('POST request for logout user: ' + user.database);
-    db.closeConnection();
     user.token = '';
-    db.waitingForLoggingIn(configuration);
     res.sendStatus(200);
   } else {
     res.sendStatus(401);
@@ -123,7 +119,7 @@ app.post('/tasks/task', (req, res, next) => {
   const task = req.body;
   if (user.id === jwt.verify(req.query.token, user.secret).id) {
     logger.info('POST request from client: ');
-    db.addTask(task.name, task.complete, (err, result) => {
+    db.addTask(user.login, task.name, task.complete, (err, result) => {
       if (err) {
         logger.error(err);
         res.sendStatus(500);
@@ -141,7 +137,7 @@ app.post('/tasks/task', (req, res, next) => {
 app.delete('/tasks/task/:taskId', (req, res, next) => {
   if (jwt.verify(req.query.token, user.secret).id === user.id) {
     logger.info('DELETE request from client by id: ' + req.params.taskId);
-    db.deleteTask(req.params.taskId, (err) => errorHandler(err, res));
+    db.deleteTask(user.login, req.params.taskId, (err) => errorHandler(err, res));
   } else {
     res.sendStatus(401);
   }
@@ -152,7 +148,7 @@ app.put('/tasks/task/:taskId', (req, res, next) => {
     const task = req.body;
     logger.info('PUT request from client: ');
     logger.info(task);
-    db.updateTask(task.complete, task.id, (err) => errorHandler(err, res, task));
+    db.updateTask(user.login, task.complete, task.id, (err) => errorHandler(err, res, task));
   } else {
     res.sendStatus(401);
   }
