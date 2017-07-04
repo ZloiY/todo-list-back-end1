@@ -11,19 +11,16 @@ exports.addTask = function (taskName, taskCheck, callback) {
 };
 
 exports.getTasks = function (callback) {
-  return connection.query('select * from tasks', (err, result) => callbackHandler(callback, err, result));
+ connection.query('select * from tasks', (err, result) => callbackHandler(callback, err, result));
 };
 
-exports.getTask = function (taskId, callback) {
-  return connection.query('select * from tasks where id=' + taskId, (err, result) => callbackHandler(callback, err, result));
-};
 
 exports.deleteTask = function (taskId, callback) {
   connection.query('delete from tasks where id=' + taskId, (err) => callbackHandler(callback, err));
 };
 
 exports.updateTask = function (taskState, taskId, callback) {
-  connection.query('update tasks set complete=? where id=?', [taskState,taskId], (err) => callbackHandler(callback, err));
+  connection.query('update tasks set complete=? where id=?', [taskState, taskId], (err) => callbackHandler(callback, err));
 };
 
 exports.createUser = function (config, database, callback) {
@@ -34,11 +31,32 @@ exports.createUser = function (config, database, callback) {
     }
     this.connectToDB(config, database, (err) => {
       if (err) {
-        logger.error(err);
+        callbackHandler(err)
       }
       connection.query('create table if not exists tasks (`id` int not null auto_increment, `name` varchar(50) not null, `complete` int(1) not null,PRIMARY KEY ( `id` ))',
         (err, result, fields) => callbackHandler(callback, err));
     });
+  });
+};
+
+exports.setUserSalt = function (userSalt, config, callback) {
+  const database = 'users';
+  this.connectToDB(config, database, (err) => {
+    if (err) {
+      callbackHandler(err)
+    }
+    logger.info('Adding salt for user: ' + userSalt.user);
+    connection.query('insert into salts (user, salt) values (?, ?)', [userSalt.user, userSalt.salt], (err) => callbackHandler(callback, err));
+  });
+};
+
+exports.getUserSalt = function (user, config, callback) {
+  const database = 'users';
+  this.connectToDB(config, database, (err) => {
+    if (err) {
+      callbackHandler(err);
+    }
+    connection.query('select salt from salts where `user_id`=?', [user], (err, result) => callbackHandler(callback, err, result));
   });
 };
 
@@ -64,11 +82,8 @@ exports.closeConnection = function () {
   connection.end((err) => {
     if (err) {
       logger.error(err.stack);
-    } else {
-      connection.release();
     }
   });
-  connection.destroy();
 };
 
 const callbackHandler = function (callback, err, result={}) {
@@ -91,6 +106,7 @@ const createDBConnection = function (config, dbname='') {
     port: config.database.port,
     user: config.database.userName,
     password: config.database.userPass,
+    connectTimeout: 1488,
     database: dbname,
   });
 };
