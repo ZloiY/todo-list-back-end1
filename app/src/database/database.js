@@ -54,11 +54,7 @@ exports.waitingForLoggingIn = function (config) {
 };
 
 exports.closeConnection = function () {
-  connection.end((err) => {
-    if (err) {
-      logger.error(err.stack);
-    }
-  });
+  connection.destroy();
 };
 
 const callbackHandler = function (callback, err, result={}) {
