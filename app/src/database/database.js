@@ -46,7 +46,7 @@ exports.setUserSalt = function (userSalt, config, callback) {
       callbackHandler(err)
     }
     logger.info('Adding salt for user: ' + userSalt.user);
-    connection.query('insert into salts (user, salt) values (?, ?)', [userSalt.user, userSalt.salt], (err) => callbackHandler(callback, err));
+    connection.query('insert into salts (user_id, salt) values (?, ?)', [userSalt.user, userSalt.salt], (err) => callbackHandler(callback, err));
   });
 };
 
@@ -61,7 +61,6 @@ exports.getUserSalt = function (user, config, callback) {
 };
 
 exports.connectToDB = function (config, database, callback) {
-  logger.info('logging into account');
   this.closeConnection();
   connection = createDBConnection(config, database);
   connection.connect((err) => callbackHandler(callback, err));
