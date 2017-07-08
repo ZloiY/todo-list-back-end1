@@ -7,7 +7,8 @@ let sequelize;
 exports.connectToDb = function (dbPath) {
   sequelize = new Sequelize({
     dialect: 'sqlite',
-    storage: dbPath
+    storage: dbPath,
+    logging: false,
   });
   sequelize.authenticate()
     .then(() => logger.info('Connect to database'))
