@@ -102,9 +102,9 @@ app.put('/tasks/task/:taskId', (req, res, next) => {
 });
 
 exports.start = function (config) {
-  app.listen(port, () => {
+  app.listen(config.parsed.server_port, () => {
     logger.info('server is up on localhost:' + port);
-    db.connectToDb(config);
+    db.connectToDb(config.parsed.db_path);
   });
 };
 
