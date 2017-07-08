@@ -34,7 +34,6 @@ exports.getTasks = function (response, db, user) {
 
 exports.addTask = function (task, response, db, user) {
   const userTasks = getTaskTable(db.getSequelize(), user.table);
-  userTasks.sync().catch((err) => logger.error(err));
   if (userTasks.getTableName()) {
     userTasks.create({
       name: task.name,
@@ -51,7 +50,6 @@ exports.addTask = function (task, response, db, user) {
 
 exports.deleteTask = function (taskId, response, db, user) {
   const userTasks = getTaskTable(db.getSequelize(), user.table);
-  userTasks.sync().catch((err) => logger.error(err));
   if (userTasks.getTableName()) {
     userTasks.destroy({where: {id: taskId}})
       .then(() => response.sendStatus(200))
@@ -66,7 +64,6 @@ exports.deleteTask = function (taskId, response, db, user) {
 
 exports.updateTask = function (task, response, db, user) {
   const userTasks = getTaskTable(db.getSequelize(), user.table);
-  userTasks.sync().catch((err) => logger.error(err));
   if (userTasks.getTableName()) {
     userTasks.update(task, {where: {id: task.id}})
       .then(() => response.sendStatus(200))
