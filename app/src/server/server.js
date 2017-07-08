@@ -28,7 +28,7 @@ app.use(bodyParser.json());
 
 app.get('/tasks', (req, res, next) => {
   if (jwt.verify(req.query.token, token.getSecret()).id === token.getId()) {
-   taskRepo.getTasks(res, userRepo, user);
+   taskRepo.getTasks(res, db, user);
   } else {
     res.sendStatus(401);
   }

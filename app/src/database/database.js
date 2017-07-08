@@ -4,7 +4,7 @@ const logger = log4js.getLogger('server');
 
 let sequelize;
 
-exports.connectToDb = function(config) {
+exports.connectToDb = function (config) {
   sequelize = new Sequelize('todo_list', config.parsed.db_user, config.parsed.db_pass, {
     host: config.parsed.host,
     dialect: 'mysql',
@@ -19,7 +19,7 @@ exports.connectToDb = function(config) {
     .catch((err) => logger.error('Unable connect to the database: ' + err.stack));
 };
 
-exports.getSequelize = function() {
+exports.getSequelize = function () {
   return sequelize;
 };
 

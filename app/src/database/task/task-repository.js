@@ -4,8 +4,6 @@ const logger = log4js.getLogger('server');
 
 function getTaskTable (sequelize, tableName) {
   logger.info('Getting table: ' + tableName);
-  sequelize.authenticate()
-    .catch((err) => logger.error('Bad connection ' + err.stack));
   const task = sequelize.define('task', {
     name: {type: Sequelize.STRING},
     complete: {type: Sequelize.INTEGER},
