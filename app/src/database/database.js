@@ -4,15 +4,10 @@ const logger = log4js.getLogger('server');
 
 let sequelize;
 
-exports.connectToDb = function (config) {
-  sequelize = new Sequelize('todo_list', config.parsed.db_user, config.parsed.db_pass, {
-    host: config.parsed.host,
-    dialect: 'mysql',
-    pool: {
-      max: 5,
-      min: 0,
-      idle: 10000,
-    },
+exports.connectToDb = function (dbPath) {
+  sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: dbPath
   });
   sequelize.authenticate()
     .then(() => logger.info('Connect to database'))
