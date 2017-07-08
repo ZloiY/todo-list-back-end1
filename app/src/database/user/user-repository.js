@@ -26,8 +26,8 @@ exports.authUser = function (db, token, user, response) {
 };
 
 exports.createUser = function (db, user, response) {
-  getUserTable().sync().catch((err) => logger.error(err));
-  getUserTable().create({
+  getUserTable(db.getSequelize()).sync().catch((err) => logger.error(err));
+  getUserTable(db.getSequelize()).create({
     login: user.login,
     pass_hash: user.pass,
     salt: user.salt,
