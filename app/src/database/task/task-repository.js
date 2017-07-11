@@ -13,63 +13,61 @@ function getTaskTable (sequelize, tableName) {
   return task;
 }
 
-exports.getTasks = function (response, db, user) {
+exports.getTasks = function (db, user, callback) {
   const userTasks = getTaskTable(db.getSequelize(), user.table);
   userTasks.sync().catch((err) => logger.error(err));
   if (userTasks.getTableName()) {
     userTasks.findAll()
-      .then((result) => {
-        response.status(200).send(result);
-      })
+      .then((result) => callback(result, null))
       .catch((err) => {
         logger.error(err);
-        response.sendStatus(500);
+        callback(null, err);
       });
   } else {
-    response.sendStatus(201);
+    callback(null, null);
   }
 };
 
-exports.addTask = function (task, response, db, user) {
+exports.addTask = function (task, db, user, callback) {
   const userTasks = getTaskTable(db.getSequelize(), user.table);
   if (userTasks.getTableName()) {
     userTasks.create({
       name: task.name,
       complete: task.complete,
-    }).then(() => response.status(200).json(task))
+    }).then(() => callback(task, null))
       .catch((err) => {
         logger.error(err);
-        response.sendStatus(500);
+        callback(null, err);
       })
   } else {
-    response.sendStatus(201);
+    callback(null, null);
   }
 };
 
-exports.deleteTask = function (taskId, response, db, user) {
+exports.deleteTask = function (taskId, db, user, callback) {
   const userTasks = getTaskTable(db.getSequelize(), user.table);
   if (userTasks.getTableName()) {
     userTasks.destroy({where: {id: taskId}})
-      .then(() => response.sendStatus(200))
+      .then(result => callback(result, null))
       .catch((err) => {
         logger.error(err);
-        response.sendStatus(500);
+        callback(null, err);
       })
   } else {
-    response.sendStatus(201);
+    callback(null, null);
   }
 };
 
-exports.updateTask = function (task, response, db, user) {
+exports.updateTask = function (task, db, user, callback) {
   const userTasks = getTaskTable(db.getSequelize(), user.table);
   if (userTasks.getTableName()) {
     userTasks.update(task, {where: {id: task.id}})
-      .then(() => response.sendStatus(200))
+      .then(result => callback(result, null))
       .catch((err) => {
         logger.error(err);
-        response.sendStatus(500);
+        callback(null, err);
       })
   } else {
-    response.sendStatus(201);
+    callback(null, null);
   }
 };

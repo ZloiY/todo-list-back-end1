@@ -15,26 +15,26 @@ function getUserTable(sequelize) {
   return user;
 }
 
-exports.authUser = function (db, token, user, response) {
+exports.authUser = function (db, user, callback) {
   getUserTable(db.getSequelize()).sync().catch((err) => logger.error(err));
   getUserTable(db.getSequelize()).findOne({where: {login: user.login}})
-    .then(result => response.status(200).json(token))
+    .then(() => callback(null))
     .catch((err) => {
       logger.error(err);
-      response.sendStatus(500);
+      callback(err);
     });
 };
 
-exports.createUser = function (db, user, response) {
+exports.createUser = function (db, user, callback) {
   getUserTable(db.getSequelize()).sync().catch((err) => logger.error(err));
   getUserTable(db.getSequelize()).create({
     login: user.login,
     pass_hash: user.pass,
     salt: user.salt,
     table: user.table,
-  }).then(() => response.sendStatus(200))
+  }).then(() => callback(null))
     .catch((err) => {
       logger.error(err);
-      response.sendStatus(500);
+      callback(err);
     });
 };
