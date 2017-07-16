@@ -10,24 +10,24 @@ log4js.addAppender(log4js.appenders.file('../../logs/server.log'), 'server');
 
 const logger = log4js.getLogger('server');
 
-router.get('/', authMw.tokenVerification({token: auth.getToken()}), (req, res) => {
+router.get('/', authMw.tokenVerification(), (req, res) => {
   taskRepo.getTasks(db, auth.getUser(), (result, err) => callbackHandler(res, result, err));
 });
 
-router.post('/task', authMw.tokenVerification({token: auth.getToken()}), (req, res) => {
+router.post('/task', authMw.tokenVerification(), (req, res) => {
   const task = req.body;
   logger.info('POST request from client: ');
   logger.info(task);
   taskRepo.addTask(task, db, auth.getUser(), (result, err) => callbackHandler(res, result, err));
 });
 
-router.delete('/task/:taskId', authMw.tokenVerification({token: auth.getToken()}), (req, res) => {
+router.delete('/task/:taskId', authMw.tokenVerification(), (req, res) => {
   const taskId = req.params.taskId;
   logger.info('DELETE request from client by id: ' + taskId);
   taskRepo.deleteTask(taskId, db, auth.getUser(), (result, err) => callbackHandler(res, result, err));
 });
 
-router.put('/task/:taskId', authMw.tokenVerification({token: auth.getToken()}), (req, res) => {
+router.put('/task/:taskId', authMw.tokenVerification(), (req, res) => {
   const task = req.body;
   logger.info('PUT request from client: ');
   logger.info(task);
