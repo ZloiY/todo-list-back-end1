@@ -1,23 +1,37 @@
 const random = require('crypto-random-string');
 const jwt = require('jsonwebtoken');
+const Token = require('./token');
 
-let secret;
-let id;
+class JWT {
 
-exports.getToken = function () {
-  id = random(32);
-  const unsignedToken = {
-    id: id,
-    iat: Math.floor(Date.now() / 1000),
+  constructor() {
+    this.user;
+    this.secret;
+    this.token;
+  }
+
+  static createToken(user) {
+    this.user = user;
+    this.secret = random(10);
+    this.token = new Token(random(32), this.user, this.setIat(1000));
+  }
+
+  static setIat(seconds) {
+    return Math.floor(Date.now() / seconds);
   };
-  secret = random(10);
-  return jwt.sign(unsignedToken, secret);
-};
 
-exports.getSecret = function () {
-  return secret;
-};
+  static getJWT() {
+    return jwt.sign(this.token, this.secret);
+  };
 
-exports.getId = function () {
-  return id;
-};
+  static getSecret() {
+    return this.secret;
+  };
+
+  static getToken() {
+    return this.token;
+  };
+
+}
+
+module.exports = JWT;
