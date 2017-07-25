@@ -58,6 +58,20 @@ exports.deleteTask = function (taskId, db, user, callback) {
   }
 };
 
+exports.deleteTasks = function (db, user, callback) {
+  const userTasks = getTaskTable(db.getSequelize(), user.table);
+  if (userTasks.getTableName()) {
+    userTasks.destroy({where: {complete: 1}})
+      .then(result => callback(result, null))
+      .catch((err) => {
+        logger.error(err);
+        callback(null, err);
+      })
+  } else {
+    callback(null, null);
+  }
+};
+
 exports.updateTask = function (task, db, user, callback) {
   const userTasks = getTaskTable(db.getSequelize(), user.table);
   if (userTasks.getTableName()) {
@@ -71,3 +85,18 @@ exports.updateTask = function (task, db, user, callback) {
     callback(null, null);
   }
 };
+
+exports.updateTasks = function (task, db, user, callback) {
+  const userTasks = getTaskTable(db.getSequelize(), user.table);
+  if (userTasks.getTableName()) {
+    userTasks.update(task, {where: {}, fields: ['complete']})
+      .then(result => callback(result, null))
+      .catch((err) => {
+        logger.error(err);
+        callback(null, err);
+      })
+  } else {
+    callback(null, null);
+  }
+};
+

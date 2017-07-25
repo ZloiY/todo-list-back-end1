@@ -27,11 +27,22 @@ router.delete('/task/:taskId', authMw.tokenVerification(), (req, res) => {
   taskRepo.deleteTask(taskId, db, auth.getUser(), (result, err) => callbackHandler(res, result, err));
 });
 
+router.delete('/', authMw.tokenVerification(), (req, res) => {
+  logger.info('DELETE request from client deleting complete tasks');
+  taskRepo.deleteTasks(db, auth.getUser(), (result, err) => callbackHandler(res, result, err));
+});
+
 router.put('/task/:taskId', authMw.tokenVerification(), (req, res) => {
   const task = req.body;
-  logger.info('PUT request from client: ');
+  logger.info('PUT request from client updating task: ');
   logger.info(task);
   taskRepo.updateTask(task, db, auth.getUser(), (result, err) => callbackHandler(res, result, err));
+});
+
+router.put('/', authMw.tokenVerification(), (req, res) => {
+  const task = req.body;
+  logger.info('PUT request from client updating all task state to: ' + task.complete);
+  taskRepo.updateTasks(task, db, auth.getUser(), (result, err) => callbackHandler(res, result, err));
 });
 
 const callbackHandler = function (res, result, err) {
